@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pilates Studio | 雙床預約系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            clay: '#B79A8B',
+            clayDark: '#937363',
+            sand: '#F8F6F2',
+            softGray: '#ECE8E1'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 隱藏滾動條但保持滑動 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body {
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-sand text-stone-800 font-sans pb-32">
+
+  <header class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-stone-200 z-30 px-4 py-3.5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-full bg-clay text-white flex items-center justify-center font-bold text-base">P</div>
+      <span class="font-semibold text-lg tracking-wide text-stone-800">Core Pilates 預約</span>
+    </div>
+    <span class="text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-full border border-stone-200">雙床專屬</span>
+  </header>
+
+  <main class="max-w-md mx-auto p-4 space-y-5">
+
+    <section>
+      <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">選擇上課日期</label>
+      <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1" id="dateScroll">
+        </div>
+    </section>
+
+    <section>
+      <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">選擇核心床 (Reformer)</label>
+      <div class="grid grid-cols-2 gap-2 bg-stone-200 p-1 rounded-2xl">
+        <button id="bed1-btn" onclick="selectBed(1)" class="py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm bg-white text-stone-900">
+          <i data-lucide="sparkles" class="w-4 h-4 text-clay"></i>
+          <span>1 號床 (窗景)</span>
+        </button>
+        <button id="bed2-btn" onclick="selectBed(2)" class="py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all text-stone-600">
+          <i data-lucide="sparkles" class="w-4 h-4 text-clay"></i>
+          <span>2 號床 (獨立)</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="flex items-center justify-center space-x-5 text-xs text-stone-500 py-1 border-b border-stone-200">
+      <div class="flex items-center space-x-1.5">
+        <span class="w-3 h-3 rounded-full bg-white border border-stone-300"></span>
+        <span>可預約</span>
+      </div>
+      <div class="flex items-center space-x-1.5">
+        <span class="w-3 h-3 rounded-full bg-clay"></span>
+        <span>已選擇</span>
+      </div>
+      <div class="flex items-center space-x-1.5">
+        <span class="w-3 h-3 rounded-full bg-stone-200 border border-stone-300"></span>
+        <span>已約滿</span>
+      </div>
+    </div>
+
+    <section>
+      <div class="flex justify-between items-center mb-2">
+        <label class="text-xs font-bold text-stone-500 uppercase tracking-wider">選擇時段 (每次 1 小時)</label>
+        <span class="text-xs text-clay font-medium" id="selectedDateText"></span>
+      </div>
+      <div class="grid grid-cols-3 gap-2.5" id="slotsGrid">
+        </div>
+    </section>
+
+  </main>
+
+  <div id="bookingDrawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl border-t border-stone-200 p-5 transform translate-y-full transition-transform duration-300 z-40">
+    <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-4"></div>
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h3 class="font-bold text-base text-stone-900">確認預約資訊</h3>
+        <p class="text-xs text-clay font-medium mt-0.5" id="summaryText">尚未選擇時段</p>
+      </div>
+      <button onclick="clearSelection()" class="text-stone-400 hover:text-stone-600 text-xs py-1 px-2">取消選取</button>
+    </div>
+
+    <form onsubmit="handleBooking(event)" class="space-y-3">
+      <div>
+        <input type="text" id="custName" required placeholder="您的姓名 / 稱呼" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay bg-sand/40">
+      </div>
+      <div>
+        <input type="tel" id="custPhone" required placeholder="手機號碼" pattern="[0-9]{10}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay bg-sand/40">
+      </div>
+      <button type="submit" class="w-full py-3 bg-clay active:bg-clayDark text-white font-medium rounded-xl text-sm shadow-md transition-colors flex items-center justify-center space-x-1.5">
+        <i data-lucide="check-circle" class="w-4 h-4"></i>
+        <span>送出預約</span>
+      </button>
+    </form>
+  </div>
+
+  <div id="successModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 max-w-xs w-full text-center space-y-4 shadow-xl">
+      <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+        <i data-lucide="check" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h4 class="font-bold text-stone-900 text-lg">預約成功！</h4>
+        <p class="text-xs text-stone-500 mt-1">我們已保留您的時段，請準時出席。</p>
+      </div>
+      <div id="modalDetails" class="bg-sand p-3 rounded-xl text-left text-xs space-y-1 text-stone-700"></div>
+      <button onclick="closeModal()" class="w-full py-2.5 bg-stone-900 text-white rounded-xl text-sm font-medium">我知道了</button>
+    </div>
+  </div>
+
+  <script>
+    // 狀態變數
+    let selectedBed = 1;
+    let selectedDate = '';
+    let selectedSlot = null;
+
+    // 時段清單: 06:00 至 23:00 (共 17 個時段)
+    const timeSlots = [];
+    for (let i = 6; i < 23; i++) {
+      const start = String(i).padStart(2, '0') + ':00';
+      const end = String(i + 1).padStart(2, '0') + ':00';
+      timeSlots.push(`${start}-${end}`);
+    }
+
+    // 模擬已預約資料庫 (格式: { "2026-08-30_bed1": ["09:00-10:00"] })
+    const bookedRecords = {};
+
+    // 初始化未來 7 天日期按鈕
+    function initDateScroll() {
+      const scrollContainer = document.getElementById('dateScroll');
+      scrollContainer.innerHTML = '';
+      const today = new Date();
+      const days = ['日', '一', '二', '三', '四', '五', '六'];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() + i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        const dayName = i === 0 ? '今天' : `週${days[d.getDay()]}`;
+
+        if (i === 0) selectedDate = dateStr;
+
+        const btn = document.createElement('button');
+        btn.id = `date-btn-${dateStr}`;
+        btn.className = `flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all ${
+          i === 0 ? 'bg-stone-900 text-white border-stone-900 shadow' : 'bg-white text-stone-700 border-stone-200'
+        }`;
+        btn.onclick = () => selectDate(dateStr);
+        btn.innerHTML = `
+          <span class="text-[10px] opacity-80">${dayName}</span>
+          <span class="text-sm font-bold mt-0.5">${mm}/${dd}</span>
+        `;
+        scrollContainer.appendChild(btn);
+      }
+    }
+
+    function selectDate(dateStr) {
+      selectedDate = dateStr;
+      document.querySelectorAll('#dateScroll button').forEach(btn => {
+        btn.className = 'flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all bg-white text-stone-700 border-stone-200';
+      });
+      const activeBtn = document.getElementById(`date-btn-${dateStr}`);
+      if (activeBtn) {
+        activeBtn.className = 'flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all bg-stone-900 text-white border-stone-900 shadow';
+      }
+      clearSelection();
+      renderSlots();
+    }
+
+    function selectBed(bedNum) {
+      selectedBed = bedNum;
+      const b1 = document.getElementById('bed1-btn');
+      const b2 = document.getElementById('bed2-btn');
+
+      if (bedNum === 1) {
+        b1.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm bg-white text-stone-900';
+        b2.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all text-stone-600';
+      } else {
+        b2.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm bg-white text-stone-900';
+        b1.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all text-stone-600';
+      }
+      clearSelection();
+      renderSlots();
+    }
+
+    function renderSlots() {
+      const grid = document.getElementById('slotsGrid');
+      grid.innerHTML = '';
+      document.getElementById('selectedDateText').textContent = selectedDate;
+
+      const key = `${selectedDate}_bed${selectedBed}`;
+      const booked = bookedRecords[key] || [];
+
+      timeSlots.forEach(slot => {
+        const isBooked = booked.includes(slot);
+        const isSelected = selectedSlot === slot;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.disabled = isBooked;
+
+        let baseClasses = "py-2.5 px-2 rounded-xl text-xs font-semibold flex flex-col items-center justify-center border transition-all ";
+        if (isBooked) {
+          btn.className = baseClasses + "bg-stone-100 text-stone-300 border-stone-200 cursor-not-allowed";
+          btn.innerHTML = `<span>${slot}</span><span class="text-[10px] font-normal text-stone-400 mt-0.5">已約滿</span>`;
+        } else if (isSelected) {
+          btn.className = baseClasses + "bg-clay text-white border-clay shadow-md ring-2 ring-clay/30";
+          btn.innerHTML = `<span>${slot}</span><span class="text-[10px] font-normal text-stone-100 mt-0.5">已選定</span>`;
+        } else {
+          btn.className = baseClasses + "bg-white text-stone-800 border-stone-200 hover:border-clay active:scale-95 shadow-sm";
+          btn.innerHTML = `<span>${slot}</span><span class="text-[10px] font-normal text-emerald-600 mt-0.5">可預約</span>`;
+          btn.onclick = () => chooseSlot(slot);
+        }
+
+        grid.appendChild(btn);
+      });
+      lucide.createIcons();
+    }
+
+    function chooseSlot(slot) {
+      selectedSlot = slot;
+      renderSlots();
+      
+      // 更新並顯示底部抽屜
+      const drawer = document.getElementById('bookingDrawer');
+      document.getElementById('summaryText').textContent = `${selectedDate} ｜ ${selectedBed} 號床 ｜ ${slot}`;
+      drawer.classList.remove('translate-y-full');
+    }
+
+    function clearSelection() {
+      selectedSlot = null;
+      document.getElementById('bookingDrawer').classList.add('translate-y-full');
+      renderSlots();
+    }
+
+    function handleBooking(e) {
+      e.preventDefault();
+      if (!selectedSlot) return;
+
+      const name = document.getElementById('custName').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+
+      const key = `${selectedDate}_bed${selectedBed}`;
+      if (!bookedRecords[key]) bookedRecords[key] = [];
+      bookedRecords[key].push(selectedSlot);
+
+      // 顯示成功 Modal
+      document.getElementById('modalDetails').innerHTML = `
+        <p><strong>預約姓名：</strong>${name}</p>
+        <p><strong>聯絡電話：</strong>${phone}</p>
+        <p><strong>床位：</strong>Reformer ${selectedBed} 號床</p>
+        <p><strong>日期：</strong>${selectedDate}</p>
+        <p><strong>時段：</strong>${selectedSlot}</p>
+      `;
+      document.getElementById('successModal').classList.remove('hidden');
+
+      // 重設表單
+      e.target.reset();
+      clearSelection();
+    }
+
+    function closeModal() {
+      document.getElementById('successModal').classList.add('hidden');
+    }
+
+    // 初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      initDateScroll();
+      renderSlots();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
