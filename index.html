@@ -48,8 +48,24 @@
 
     <section>
       <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">選擇上課日期</label>
-      <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1" id="dateScroll">
+      <!-- 月曆檢視容器 -->
+      <div id="calendar" class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200">
+        <div class="flex items-center justify-between mb-2">
+          <button id="prevMonth" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100">&lt;</button>
+          <div class="text-sm font-semibold" id="calendarTitle"></div>
+          <button id="nextMonth" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100">&gt;</button>
         </div>
+        <div class="grid grid-cols-7 gap-1 text-[11px] text-stone-500 mb-2">
+          <div class="text-center">日</div>
+          <div class="text-center">一</div>
+          <div class="text-center">二</div>
+          <div class="text-center">三</div>
+          <div class="text-center">四</div>
+          <div class="text-center">五</div>
+          <div class="text-center">六</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+      </div>
     </section>
 
     <section>
@@ -86,13 +102,12 @@
         <label class="text-xs font-bold text-stone-500 uppercase tracking-wider">選擇時段 (每次 1 小時)</label>
         <span class="text-xs text-clay font-medium" id="selectedDateText"></span>
       </div>
-      <div class="grid grid-cols-3 gap-2.5" id="slotsGrid">
-        </div>
+      <div class="grid grid-cols-3 gap-2.5" id="slotsGrid"></div>
     </section>
 
   </main>
 
-  <div id="bookingDrawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl border-t border-stone-200 p-5 transform translate-y-full transition-transform duration-300 z-40">
+  <div id="bookingDrawer" class="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl border-t border-stone-200 p-5 transform translate-y-full transition-transform duration-300">
     <div class="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-4"></div>
     <div class="flex justify-between items-start mb-3">
       <div>
@@ -104,10 +119,10 @@
 
     <form onsubmit="handleBooking(event)" class="space-y-3">
       <div>
-        <input type="text" id="custName" required placeholder="您的姓名 / 稱呼" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay bg-sand/40">
+        <input type="text" id="custName" required placeholder="您的姓名 / 稱呼" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay bg-sand">
       </div>
       <div>
-        <input type="tel" id="custPhone" required placeholder="手機號碼" pattern="[0-9]{10}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay bg-sand/40">
+        <input type="tel" id="custPhone" required placeholder="手機號碼" pattern="[0-9]{10}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-clay">
       </div>
       <button type="submit" class="w-full py-3 bg-clay active:bg-clayDark text-white font-medium rounded-xl text-sm shadow-md transition-colors flex items-center justify-center space-x-1.5">
         <i data-lucide="check-circle" class="w-4 h-4"></i>
@@ -147,48 +162,95 @@
     // 模擬已預約資料庫 (格式: { "2026-08-30_bed1": ["09:00-10:00"] })
     const bookedRecords = {};
 
-    // 初始化未來 7 天日期按鈕
-    function initDateScroll() {
-      const scrollContainer = document.getElementById('dateScroll');
-      scrollContainer.innerHTML = '';
-      const today = new Date();
-      const days = ['日', '一', '二', '三', '四', '五', '六'];
+    // 月曆狀態
+    let viewYear, viewMonth; // viewMonth: 0-11
 
-      for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(today.getDate() + i);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const dateStr = `${yyyy}-${mm}-${dd}`;
-        const dayName = i === 0 ? '今天' : `週${days[d.getDay()]}`;
+    function pad(n){ return String(n).padStart(2,'0'); }
 
-        if (i === 0) selectedDate = dateStr;
+    function startOfToday(){
+      const d = new Date(); d.setHours(0,0,0,0); return d;
+    }
+
+    function renderCalendar() {
+      const title = document.getElementById('calendarTitle');
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const firstDay = new Date(viewYear, viewMonth, 1);
+      const lastDay = new Date(viewYear, viewMonth + 1, 0);
+      title.textContent = `${viewYear} 年 ${viewMonth + 1} 月`;
+
+      // weekday of first day (0 = Sun)
+      const startWeekday = firstDay.getDay();
+      const totalDays = lastDay.getDate();
+
+      // fill blanks before first day
+      for (let i = 0; i < startWeekday; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'h-12 rounded-xl';
+        grid.appendChild(empty);
+      }
+
+      const today = startOfToday();
+
+      for (let d = 1; d <= totalDays; d++) {
+        const cur = new Date(viewYear, viewMonth, d);
+        const dateStr = `${cur.getFullYear()}-${pad(cur.getMonth() + 1)}-${pad(cur.getDate())}`;
 
         const btn = document.createElement('button');
-        btn.id = `date-btn-${dateStr}`;
-        btn.className = `flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all ${
-          i === 0 ? 'bg-stone-900 text-white border-stone-900 shadow' : 'bg-white text-stone-700 border-stone-200'
-        }`;
+        btn.type = 'button';
+        btn.className = 'h-12 rounded-xl flex items-center justify-center text-sm font-medium transition';
         btn.onclick = () => selectDate(dateStr);
-        btn.innerHTML = `
-          <span class="text-[10px] opacity-80">${dayName}</span>
-          <span class="text-sm font-bold mt-0.5">${mm}/${dd}</span>
-        `;
-        scrollContainer.appendChild(btn);
+
+        const key = `${dateStr}_bed${selectedBed}`;
+        const booked = (bookedRecords[key] || []).length > 0;
+
+        // past days disabled
+        if (cur < today) {
+          btn.disabled = true;
+          btn.className += ' bg-stone-100 text-stone-300';
+          btn.innerHTML = `<div class="text-[12px]">${d}</div>`;
+        } else if (booked) {
+          btn.disabled = true;
+          btn.className += ' bg-stone-200 text-stone-500 border border-stone-200';
+          btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-400">已約</div>`;
+        } else {
+          // selectable
+          const isSelected = selectedDate === dateStr;
+          if (isSelected) {
+            btn.className += ' bg-clay text-white ring-2 ring-clay/30';
+            btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-100">已選</div>`;
+          } else {
+            btn.className += ' bg-white text-stone-800 hover:bg-clay/10';
+            btn.innerHTML = `<div class="text-[12px]">${d}</div>`;
+          }
+        }
+
+        grid.appendChild(btn);
       }
+
+      lucide.createIcons();
+    }
+
+    function gotoMonth(offset) {
+      const m = viewMonth + offset;
+      const newDate = new Date(viewYear, m, 1);
+      viewYear = newDate.getFullYear();
+      viewMonth = newDate.getMonth();
+      renderCalendar();
     }
 
     function selectDate(dateStr) {
       selectedDate = dateStr;
-      document.querySelectorAll('#dateScroll button').forEach(btn => {
-        btn.className = 'flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all bg-white text-stone-700 border-stone-200';
-      });
-      const activeBtn = document.getElementById(`date-btn-${dateStr}`);
-      if (activeBtn) {
-        activeBtn.className = 'flex-shrink-0 flex flex-col items-center justify-center w-14 py-2 rounded-2xl border transition-all bg-stone-900 text-white border-stone-900 shadow';
-      }
-      clearSelection();
+      // When selecting date, ensure calendar stays on that month
+      const parts = dateStr.split('-');
+      viewYear = Number(parts[0]);
+      viewMonth = Number(parts[1]) - 1;
+      // update text and slots
+      document.getElementById('selectedDateText').textContent = selectedDate;
+      // reset slot selection
+      selectedSlot = null;
+      renderCalendar();
       renderSlots();
     }
 
@@ -204,14 +266,17 @@
         b2.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all shadow-sm bg-white text-stone-900';
         b1.className = 'py-2.5 rounded-xl font-medium text-sm flex items-center justify-center space-x-1.5 transition-all text-stone-600';
       }
+      // re-render calendar because booked state depends on bed
+      renderCalendar();
       clearSelection();
-      renderSlots();
     }
 
     function renderSlots() {
       const grid = document.getElementById('slotsGrid');
       grid.innerHTML = '';
       document.getElementById('selectedDateText').textContent = selectedDate;
+
+      if (!selectedDate) return;
 
       const key = `${selectedDate}_bed${selectedBed}`;
       const booked = bookedRecords[key] || [];
@@ -245,7 +310,7 @@
     function chooseSlot(slot) {
       selectedSlot = slot;
       renderSlots();
-      
+
       // 更新並顯示底部抽屜
       const drawer = document.getElementById('bookingDrawer');
       document.getElementById('summaryText').textContent = `${selectedDate} ｜ ${selectedBed} 號床 ｜ ${slot}`;
@@ -260,7 +325,7 @@
 
     function handleBooking(e) {
       e.preventDefault();
-      if (!selectedSlot) return;
+      if (!selectedSlot || !selectedDate) return;
 
       const name = document.getElementById('custName').value.trim();
       const phone = document.getElementById('custPhone').value.trim();
@@ -270,18 +335,13 @@
       bookedRecords[key].push(selectedSlot);
 
       // 顯示成功 Modal
-      document.getElementById('modalDetails').innerHTML = `
-        <p><strong>預約姓名：</strong>${name}</p>
-        <p><strong>聯絡電話：</strong>${phone}</p>
-        <p><strong>床位：</strong>Reformer ${selectedBed} 號床</p>
-        <p><strong>日期：</strong>${selectedDate}</p>
-        <p><strong>時段：</strong>${selectedSlot}</p>
-      `;
+      document.getElementById('modalDetails').innerHTML = `\n        <p><strong>預約姓名：</strong>${name}</p>\n        <p><strong>聯絡電話：</strong>${phone}</p>\n        <p><strong>床位：</strong>Reformer ${selectedBed} 號床</p>\n        <p><strong>日期：</strong>${selectedDate}</p>\n        <p><strong>時段：</strong>${selectedSlot}</p>\n      `;
       document.getElementById('successModal').classList.remove('hidden');
 
       // 重設表單
       e.target.reset();
       clearSelection();
+      renderCalendar();
     }
 
     function closeModal() {
@@ -290,7 +350,20 @@
 
     // 初始化
     window.addEventListener('DOMContentLoaded', () => {
-      initDateScroll();
+      const now = new Date();
+      viewYear = now.getFullYear();
+      viewMonth = now.getMonth();
+      // 默认選擇今天
+      const yyyy = now.getFullYear();
+      const mm = pad(now.getMonth() + 1);
+      const dd = pad(now.getDate());
+      selectedDate = `${yyyy}-${mm}-${dd}`;
+      document.getElementById('selectedDateText').textContent = selectedDate;
+
+      document.getElementById('prevMonth').addEventListener('click', () => gotoMonth(-1));
+      document.getElementById('nextMonth').addEventListener('click', () => gotoMonth(1));
+
+      renderCalendar();
       renderSlots();
       lucide.createIcons();
     });
