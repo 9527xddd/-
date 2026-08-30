@@ -52,8 +52,15 @@
       <div id="calendar" class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200">
         <div class="flex items-center justify-between mb-2">
           <button id="prevMonth" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100">&lt;</button>
-          <div class="text-sm font-semibold" id="calendarTitle"></div>
-          <button id="nextMonth" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100">&gt;</button>
+          <div class="flex items-center space-x-2">
+            <div class="text-sm font-semibold" id="calendarTitle"></div>
+            <select id="yearSelect" class="text-sm px-2 py-1 border rounded bg-white hidden"></select>
+            <select id="monthSelect" class="text-sm px-2 py-1 border rounded bg-white hidden"></select>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="jumpBtn" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100 text-[12px]">跳到月份</button>
+            <button id="nextMonth" class="text-stone-600 px-2 py-1 rounded hover:bg-stone-100">&gt;</button>
+          </div>
         </div>
         <div class="grid grid-cols-7 gap-1 text-[11px] text-stone-500 mb-2">
           <div class="text-center">日</div>
@@ -199,30 +206,32 @@
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'h-12 rounded-xl flex items-center justify-center text-sm font-medium transition';
+        btn.className = 'h-12 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition';
         btn.onclick = () => selectDate(dateStr);
 
         const key = `${dateStr}_bed${selectedBed}`;
-        const booked = (bookedRecords[key] || []).length > 0;
+        const bookedCount = (bookedRecords[key] || []).length;
+        const remaining = Math.max(0, timeSlots.length - bookedCount);
 
         // past days disabled
         if (cur < today) {
           btn.disabled = true;
           btn.className += ' bg-stone-100 text-stone-300';
           btn.innerHTML = `<div class="text-[12px]">${d}</div>`;
-        } else if (booked) {
+        } else if (remaining === 0) {
+          // fully booked
           btn.disabled = true;
           btn.className += ' bg-stone-200 text-stone-500 border border-stone-200';
-          btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-400">已約</div>`;
+          btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-400">已滿</div>`;
         } else {
-          // selectable
+          // selectable (may have partial bookings)
           const isSelected = selectedDate === dateStr;
           if (isSelected) {
             btn.className += ' bg-clay text-white ring-2 ring-clay/30';
-            btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-100">已選</div>`;
+            btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-100">已選</div><div class="text-[10px] mt-0.5">剩 ${remaining}</div>`;
           } else {
             btn.className += ' bg-white text-stone-800 hover:bg-clay/10';
-            btn.innerHTML = `<div class="text-[12px]">${d}</div>`;
+            btn.innerHTML = `<div class="text-[12px]">${d}</div><div class="text-[10px] text-stone-400 mt-0.5">${bookedCount > 0 ? `已 ${bookedCount}` : ''}${bookedCount > 0 ? ` · 剩 ${remaining}` : `剩 ${remaining}`}</div>`;
           }
         }
 
@@ -237,7 +246,65 @@
       const newDate = new Date(viewYear, m, 1);
       viewYear = newDate.getFullYear();
       viewMonth = newDate.getMonth();
+      syncSelectors();
       renderCalendar();
+    }
+
+    function buildSelectors() {
+      const yearSel = document.getElementById('yearSelect');
+      const monthSel = document.getElementById('monthSelect');
+      yearSel.innerHTML = '';
+      monthSel.innerHTML = '';
+      const now = new Date();
+      // show range: current year -2 .. current year +2
+      const startYear = now.getFullYear() - 2;
+      const endYear = now.getFullYear() + 2;
+      for (let y = startYear; y <= endYear; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = `${y} 年`;
+        yearSel.appendChild(opt);
+      }
+      for (let m = 0; m < 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = `${m + 1} 月`;
+        monthSel.appendChild(opt);
+      }
+
+      yearSel.addEventListener('change', () => {
+        viewYear = Number(yearSel.value);
+        renderCalendar();
+      });
+      monthSel.addEventListener('change', () => {
+        viewMonth = Number(monthSel.value);
+        renderCalendar();
+      });
+    }
+
+    function syncSelectors() {
+      const yearSel = document.getElementById('yearSelect');
+      const monthSel = document.getElementById('monthSelect');
+      if (!yearSel || !monthSel) return;
+      yearSel.value = viewYear;
+      monthSel.value = viewMonth;
+    }
+
+    function toggleJumpMode() {
+      const yearSel = document.getElementById('yearSelect');
+      const monthSel = document.getElementById('monthSelect');
+      const title = document.getElementById('calendarTitle');
+      const shown = yearSel.classList.contains('hidden');
+      if (shown) {
+        yearSel.classList.remove('hidden');
+        monthSel.classList.remove('hidden');
+        title.classList.add('hidden');
+        syncSelectors();
+      } else {
+        yearSel.classList.add('hidden');
+        monthSel.classList.add('hidden');
+        title.classList.remove('hidden');
+      }
     }
 
     function selectDate(dateStr) {
@@ -362,6 +429,10 @@
 
       document.getElementById('prevMonth').addEventListener('click', () => gotoMonth(-1));
       document.getElementById('nextMonth').addEventListener('click', () => gotoMonth(1));
+
+      buildSelectors();
+      syncSelectors();
+      document.getElementById('jumpBtn').addEventListener('click', toggleJumpMode);
 
       renderCalendar();
       renderSlots();
